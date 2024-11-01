@@ -127,8 +127,8 @@ uint64_t get_bitmap64(string_t *str, int start) {
     uint64_t toret = 0;
 
     for (int i = start; i < str->size; i++) {
-        toret |= str->str[i];
         toret <<= 8; 
+        toret |= str->str[i];
     }
 
     return toret;
