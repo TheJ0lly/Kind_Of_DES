@@ -4,8 +4,8 @@
 #include <stdint.h>
 
 typedef struct Permutation {
-    uint8_t *data;
-    uint8_t size;
+    int *data;
+    int size;
 } Perm;
 
 // The hard-coded IP from permutation.c.
