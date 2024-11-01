@@ -1,9 +1,12 @@
 #include "../include/permutation.h"
+#include "../include/strconv.h"
+
 
 #include <stdio.h>
 #include <stdbool.h>
 #include <getopt.h>
 #include <string.h>
+#include <inttypes.h>
 
 #define HELP                0
 #define MISSING_ARG         1
@@ -13,6 +16,7 @@
 #define BOTH_OPS_TOGGLED    5
 #define NO_OPS_TOGGLED      6
 #define ARG_NOT_PASSED      7
+#define FAILED_ALLOC        8
 
 void print_flags_description() {
     printf("  -k <string>\n    the key to use for encryption/decryption.\n");
@@ -23,10 +27,11 @@ void print_flags_description() {
 }
 
 int main(int argc, char **argv) {
-    char *key = NULL;
-    char *text = NULL;
+    string_t *key = NULL;
+    string_t *text = NULL;
     bool encrypt = false;
     bool decrypt = false;
+
 
     char opt = 0;
 
@@ -36,24 +41,36 @@ int main(int argc, char **argv) {
             print_flags_description();
             return HELP;
         case 'k':
-            key = optarg;
-
             // We check if optarg is another flag, in which case we return error.
-            if (strcmp(key, "-h") == 0 || strcmp(key, "-t") == 0 || strcmp(key, "-d") == 0 || strcmp(key, "-e") == 0) {
+            if (strcmp(optarg, "-h") == 0 || strcmp(optarg, "-t") == 0 || strcmp(optarg, "-d") == 0 || strcmp(optarg, "-e") == 0) {
                 printf("option -k requires an argument.\n");
                 print_flags_description();
                 return MISSING_ARG;
             }
+
+            key = create_string(optarg, 8);
+
+            if (key == NULL) {
+                printf("error: failed to allocate memory for key\n");
+                return FAILED_ALLOC;
+            }
+
             break;
         case 't':
-            text = optarg;
-
             // We check if optarg is another flag, in which case we return error.
-            if (strcmp(key, "-h") == 0 || strcmp(key, "-k") == 0 || strcmp(key, "-d") == 0 || strcmp(key, "-e") == 0) {
+            if (strcmp(optarg, "-h") == 0 || strcmp(optarg, "-k") == 0 || strcmp(optarg, "-d") == 0 || strcmp(optarg, "-e") == 0) {
                 printf("option -t requires an argument.\n");
                 print_flags_description();
                 return MISSING_ARG;
             }
+
+            text = create_string(optarg, 256);
+
+            if (text == NULL) {
+                printf("error: failed to allocate memory for text\n");
+                return FAILED_ALLOC;
+            }
+
             break;
         case 'e':
             encrypt = true;
@@ -87,16 +104,24 @@ int main(int argc, char **argv) {
         return ARG_NOT_PASSED;
     }
 
-    if (strlen(key) > 8) {
-        printf("key is too big - max 8 characters allowed.\n");
+    if (key->size != 8) {
+        printf("key must be exactly 8 characters.\n");
         return KEY_TOO_BIG;
     }
-    
-    if (strlen(text) > 8) {
-        printf("text is too big - max 8 characters allowed.\n");
-        return TEXT_TOO_BIG;
+
+    int textlen = check_len_by_8(text); 
+    if (textlen != 0) {
+        printf("text length is %ld - adding %d bytes of padding\n", text->size, textlen);
+        if (add_padding(&text, textlen) != 0) {
+            printf("error: failed to allocate memory for string padding\n");
+            return FAILED_ALLOC;
+        }
+        printf("padding successful - new length is %ld\n", text->size);
+        print_string(text, "string: %s\n");
     }
 
+    printf("bitmap for text: %lu\n", get_bitmap64(text, 0));
+    
     if (decrypt && encrypt) {
         printf("both the encryption and decryption flags have been toggled - must have only 1.\n");
         return BOTH_OPS_TOGGLED;
