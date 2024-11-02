@@ -4,15 +4,15 @@
 #include <stdint.h>
 
 typedef struct Permutation {
-    int *data;
-    int size;
+    uint8_t *data;
+    uint8_t size;
 } Perm;
 
 // The hard-coded IP from permutation.c.
 Perm *get_default_initial_permutation();
 
 // Create and free permutations.
-Perm *create_permutation(int size, ...);
+Perm *create_permutation(uint8_t size, ...);
 
 // We take a pointer to a pointer to a Perm, to free the underlying array, and also the Perm pointer.
 void free_permutation(Perm **p);
