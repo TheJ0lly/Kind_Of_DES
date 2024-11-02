@@ -7,16 +7,6 @@
 #include <getopt.h>
 #include <string.h>
 
-#define HELP                0
-#define MISSING_ARG         1
-#define UNKNOWN_FLAG        2
-#define KEY_TOO_BIG         3
-#define TEXT_TOO_BIG        4
-#define BOTH_OPS_TOGGLED    5
-#define NO_OPS_TOGGLED      6
-#define ARG_NOT_PASSED      7
-#define FAILED_ALLOC        8
-
 void print_flags_description() {
     printf("  -k <string>\n    the key to use for encryption/decryption.\n");
     printf("  -t <string>\n    the text to encrypt/decrypt.\n");
