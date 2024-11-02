@@ -11,7 +11,7 @@ typedef struct Permutation {
 // The hard-coded IP from permutation.c.
 Perm *get_default_initial_permutation();
 
-// Create and free permutations.
+// Create a permutation.
 Perm *create_permutation(uint8_t size, ...);
 
 // We take a pointer to a pointer to a Perm, to free the underlying array, and also the Perm pointer.

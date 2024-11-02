@@ -82,6 +82,17 @@ void print_string(string_t *str, char *format) {
     }
 }
 
+char *get_Cstring(string_t *str) {
+    char *toret = malloc(sizeof(char) * (str->size + 1));
+    toret[str->size] = 0;
+
+    for (int i = 0; i < str->size; i++) {
+        toret[i] = str->str[i];
+    }
+
+    return toret;
+}
+
 int check_len_by_8(string_t *str) {
     int target = 8;
 

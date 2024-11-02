@@ -22,6 +22,10 @@ void free_string(string_t **str);
 // Prints the string_t.
 void print_string(string_t *str, char *format);
 
+// Get the string as a C-string, with the NULL-terminator character at the end.
+// Acts like sprintf.
+char *get_Cstring(string_t *str);
+
 // Returns the difference, if any, that is needed until the next bigger multiple of 8.
 int check_len_by_8(string_t *str);
 

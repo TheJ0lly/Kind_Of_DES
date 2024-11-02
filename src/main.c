@@ -31,6 +31,8 @@ int main(int argc, char **argv) {
             return HELP;
         case 'k':
             // We check if optarg is another flag, in which case we return error.
+            // In cases where we need a value for a flag and we do not pass any value,
+            // the next flag will be taken as the value, thus we check if the value is a flag.
             if (strcmp(optarg, "-h") == 0 || strcmp(optarg, "-t") == 0 || strcmp(optarg, "-d") == 0 || strcmp(optarg, "-e") == 0) {
                 print_log(ERROR, "option -k requires an argument.\n");
                 print_flags_description();
@@ -47,6 +49,8 @@ int main(int argc, char **argv) {
             break;
         case 't':
             // We check if optarg is another flag, in which case we return error.
+            // In cases where we need a value for a flag and we do not pass any value,
+            // the next flag will be taken as the value, thus we check if the value is a flag.
             if (strcmp(optarg, "-h") == 0 || strcmp(optarg, "-k") == 0 || strcmp(optarg, "-d") == 0 || strcmp(optarg, "-e") == 0) {
                 print_log(ERROR, "option -t requires an argument.\n");
                 print_flags_description();
@@ -98,7 +102,10 @@ int main(int argc, char **argv) {
         return KEY_TOO_BIG;
     }
 
+    // We check if the length of the text is divisible by 8.
     int textlen = check_len_by_8(text); 
+
+    // If its not divisible by 8, we add padding.
     if (textlen != 0) {
         print_log(INFO, "text length is %lu - adding %d bytes of padding\n", text->size, textlen);
         if (add_padding(&text, textlen) != 0) {
@@ -107,8 +114,6 @@ int main(int argc, char **argv) {
         }
         print_log(INFO, "padding successful - new length is %ld\n", text->size);
     }
-
-    print_log(INFO, "bitmap for text: %lu\n", get_bitmap64(text, 0));
     
     if (decrypt && encrypt) {
         print_log(ERROR, "both the encryption and decryption flags have been toggled - must have only 1.\n");
