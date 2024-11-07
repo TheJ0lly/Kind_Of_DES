@@ -19,9 +19,11 @@ class Args:
         self.__osargs = sys.argv[1:]
         self.__usage_string = usage
 
+
     def add_argument(self, key: str, default: any, requires_val: bool, description: str):
         self.flags[key] = ArgOpts(default, requires_val, description)
         pass
+
 
     def __print_args(self):
         """
@@ -30,6 +32,7 @@ class Args:
         for k, v in self.flags.items():
             print(f' -{k} {"<value>\n" if v.requires_val else "\n"}{f"   {v.description}\n"}')
 
+
     def usage(self):
         """
         Prints the usage of the program along with the arguments.
@@ -37,7 +40,8 @@ class Args:
         print(self.__usage_string)
         self.__print_args()
 
-    def parse_args(self) -> int:
+
+    def parse_args(self):
         """
         This method will try to parse the passed arguments.
         In case of an error, the error will be raised, so surround this method with try/catch
@@ -77,4 +81,4 @@ class Args:
             # Otherwise we raise an error
             else:
                 raise Exception(f'unknown argument: {sysarg}')
-            
+
