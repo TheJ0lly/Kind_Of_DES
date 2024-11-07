@@ -1,6 +1,7 @@
 import args
 import os
 import bitset
+import permutation
 
 # EXIT CODES
 OK = 0
@@ -40,6 +41,11 @@ if __name__ == "__main__":
         os._exit(NONE_CALLED)
 
 
+    # The default Initial Permutation and its Inverse
+    IP = permutation.Permutation(permutation.IP)
+    INV_IP = IP.compute_inverse()
+
+
     # We start to process the key and text
     key = bitset.Bitset(a.flags['k'].value)
 
@@ -49,3 +55,5 @@ if __name__ == "__main__":
     
     text = bitset.Bitset(a.flags['t'].value)
     text.adjust_len(8)
+
+    
