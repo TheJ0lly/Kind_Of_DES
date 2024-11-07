@@ -1,2 +1,2 @@
-bin/
 .vscode/
+__pycache__
