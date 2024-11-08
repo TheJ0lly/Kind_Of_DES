@@ -47,13 +47,19 @@ if __name__ == "__main__":
 
 
     # We start to process the key and text
-    key = bitset.Bitset(a.flags['k'].value)
+    key = bitset.KeyBitset(a.flags['k'].value)
 
     if key.len_bytes() != 8:
         print('error: key must be exactly 8 characters')
         os._exit(WRONG_KEY_LEN)
-    
-    text = bitset.Bitset(a.flags['t'].value)
-    text.adjust_len(8)
 
-    
+    # We remove the parity bits of the key
+    key.remove_parity_bits()
+
+    # We split the key into the 28-bit halves.
+    key.split()
+
+    text = bitset.TextBitset(a.flags['t'].value)
+    text.adjust_len()
+
+    text.split()    
