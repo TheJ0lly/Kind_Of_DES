@@ -3,7 +3,7 @@ class Bitset:
         """
         Turns a string into a bitset.
         """
-        self.bits = []
+        self.bits: list[int] = []
         self.left: list[int]
         self.right: list[int]
         
@@ -41,6 +41,11 @@ class Bitset:
             i += 8
         
         return s
+    
+
+    def get_bit(i: int, side: list[int]) -> int:
+        sidelen = int(len(side))
+        return side[sidelen-i]
 
 
 class KeyBitset(Bitset):
