@@ -59,7 +59,7 @@ func CreateBitsetFromString(str string, double, hex bool) *Bitset {
 	return bs
 }
 
-func CreateBitsetFromInt32(num int32, double bool) *Bitset {
+func CreateBitsetFromUInt32(num uint32, double bool) *Bitset {
 	// We allocate space for the bits of the string + the timestamp bits(64 bits),
 	// and we set the size to the length of the string * 8, to get all bits per character.
 
@@ -98,7 +98,7 @@ func CreateBitsetFromInt64(num int64, double bool) *Bitset {
 	return bs
 }
 
-func Copy(bs *Bitset) *Bitset {
+func CopyBitset(bs *Bitset) *Bitset {
 	ret := &Bitset{Bits: make([]byte, len(bs.Bits))}
 
 	copy(ret.Bits, bs.Bits)
@@ -253,7 +253,7 @@ func Get6BitVal(bits []byte) byte {
 	return sum
 }
 
-func (bs *Bitset) ApplySBox(which int) int32 {
+func (bs *Bitset) ApplySBox(which int) uint32 {
 	index := 6 * which
 
 	// We get the 6 bits before applying the SBox
@@ -265,7 +265,7 @@ func (bs *Bitset) ApplySBox(which int) int32 {
 	// We nullify the first and last bit, and we get the middle 4
 	col := (val & 30) >> 1
 
-	return int32(SBoxes[which][row][col])
+	return uint32(SBoxes[which][row][col])
 }
 
 func GetByteAsHex(bits []byte) string {
