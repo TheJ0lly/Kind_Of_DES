@@ -2,6 +2,8 @@ package main
 
 import "fmt"
 
+var CanLog = false
+
 func log(ty, format string, args ...any) {
 	fmt.Printf(ty+format, args...)
 }
@@ -11,5 +13,7 @@ func logError(format string, args ...any) {
 }
 
 func logInfo(format string, args ...any) {
-	log("info: ", format, args...)
+	if CanLog {
+		log("info: ", format, args...)
+	}
 }

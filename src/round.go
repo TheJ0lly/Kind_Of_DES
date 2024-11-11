@@ -1,7 +1,7 @@
 package main
 
 type RoundComputer struct {
-	Rounds []byte
+	Rounds []int
 }
 
 // ComputeByte gets the value of the byte and transforms it such that it maps to a specific index.
@@ -17,7 +17,7 @@ func ComputeByte(bits []byte) byte {
 
 // CreateRoundComputer generates the set of rounds where the bits are shifted 1 or 2 bits.
 func CreateRoundComputer(k *Bitset) *RoundComputer {
-	rounds := make([]byte, 16)
+	rounds := make([]int, 16)
 
 	maxRounds := 0
 
@@ -36,6 +36,15 @@ func CreateRoundComputer(k *Bitset) *RoundComputer {
 	// We make sure there is no round with 0 bit shift.
 	for i := 0; i < 16; i++ {
 		if rounds[i] == 0 {
+			rounds[i] = 1
+		}
+	}
+
+	// We invert the rounds to get the 4 x 1 and 12 x 2 rounds
+	for i := 0; i < 16; i++ {
+		if rounds[i] == 1 {
+			rounds[i] = 2
+		} else {
 			rounds[i] = 1
 		}
 	}
