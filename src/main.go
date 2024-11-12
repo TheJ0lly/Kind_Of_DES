@@ -116,6 +116,12 @@ func main() {
 
 	var textBS, keyBS, Temp *Bitset
 
+	LeftChan := make(chan struct{})
+	RightChan := make(chan struct{})
+
+	LeftRound := make(chan int)
+	RightRound := make(chan int)
+
 	if *Encrypt {
 		// Prepare the text
 		textBS = CreateBitsetFromString(*text, false)
@@ -148,26 +154,74 @@ func main() {
 		// Compute the key rounds for encryption of the right side
 		KeyRounds1 := PrecomputeRounds(KL1, KR1)
 
-		for RoundIndex := 0; RoundIndex < 16; RoundIndex++ {
-			//============== LEFT SIDE =================
-			// The new right side
-			Temp = XORBitsets(Feistel(KeyRounds0[RoundIndex], TR0), TL0)
-			// The left side is the old right side
-			TL0 = TR0
-			// The right side is the new computed side.
-			TR0 = Temp
-			//===========================================
+		//============== LEFT SIDE =================
+		go func(ready chan struct{}, round chan int) {
+			for {
+				RoundIndex := <-round
 
-			//============== RIGHT SIDE =================
-			// The new right side
-			Temp = XORBitsets(Feistel(KeyRounds1[RoundIndex], TR1), TL1)
-			// The left side is the old right side
-			TL1 = TR1
-			// The right side is the new computed side.
-			TR1 = Temp
-			//===========================================
+				if RoundIndex == 16 {
+					// We send the last signal to kill the synchronizer
+					ready <- struct{}{}
+					break
+				}
 
-		}
+				// The new right side
+				Temp = XORBitsets(Feistel(KeyRounds0[RoundIndex], TR0), TL0)
+				// The left side is the old right side
+				TL0 = TR0
+				// The right side is the new computed side.
+				TR0 = Temp
+
+				// Signaling that the left side is done for this round.
+				ready <- struct{}{}
+			}
+		}(LeftChan, LeftRound)
+		//===========================================
+
+		//============== RIGHT SIDE =================
+		go func(ready chan struct{}, round chan int) {
+			for {
+				RoundIndex := <-round
+
+				if RoundIndex == 16 {
+					// We send the last signal to kill the synchronizer
+					ready <- struct{}{}
+					break
+				}
+
+				// The new right side
+				Temp = XORBitsets(Feistel(KeyRounds1[RoundIndex], TR1), TL1)
+				// The left side is the old right side
+				TL1 = TR1
+				// The right side is the new computed side.
+				TR1 = Temp
+
+				// Signaling that the right side is done for this round.
+				ready <- struct{}{}
+			}
+		}(RightChan, RightRound)
+		//===========================================
+
+		Done := make(chan struct{})
+
+		// Synchronizer
+		go func(kill, leftReady, rightReady chan struct{}, leftRound, rightRound chan int) {
+
+			for i := 0; i < 17; i++ {
+				// We send the rount through the respective channels
+				leftRound <- i
+				rightRound <- i
+
+				// Waiting for signals to proces
+				<-leftReady
+				<-rightReady
+			}
+
+			kill <- struct{}{}
+		}(Done, LeftChan, RightChan, LeftRound, RightRound)
+
+		// We wait for the synchronizer to die.
+		<-Done
 
 		// We switch the sides, as after 16 rounds they are inverted.
 		FinalLeft := ConcatBitsets(TR0, TL0)
@@ -207,26 +261,74 @@ func main() {
 		// Compute the key rounds for encryption of the right side
 		KeyRounds1 := PrecomputeRounds(KL1, KR1)
 
-		for RoundIndex := 15; RoundIndex >= 0; RoundIndex-- {
-			//============== LEFT SIDE =================
-			// The new right side
-			Temp = XORBitsets(Feistel(KeyRounds0[RoundIndex], TR0), TL0)
-			// The left side is the old right side
-			TL0 = TR0
-			// The right side is the new computed side.
-			TR0 = Temp
-			//===========================================
+		//============== LEFT SIDE =================
+		go func(ready chan struct{}, round chan int) {
+			for {
+				RoundIndex := <-round
 
-			//============== RIGHT SIDE =================
-			// The new right side
-			Temp = XORBitsets(Feistel(KeyRounds1[RoundIndex], TR1), TL1)
-			// The left side is the old right side
-			TL1 = TR1
-			// The right side is the new computed side.
-			TR1 = Temp
-			//===========================================
+				if RoundIndex == -1 {
+					// We send the last signal to kill the synchronizer
+					ready <- struct{}{}
+					break
+				}
 
-		}
+				// The new right side
+				Temp = XORBitsets(Feistel(KeyRounds0[RoundIndex], TR0), TL0)
+				// The left side is the old right side
+				TL0 = TR0
+				// The right side is the new computed side.
+				TR0 = Temp
+
+				// Signaling that the left side is done for this round.
+				ready <- struct{}{}
+			}
+		}(LeftChan, LeftRound)
+		//===========================================
+
+		//============== RIGHT SIDE =================
+		go func(ready chan struct{}, round chan int) {
+			for {
+				RoundIndex := <-round
+
+				if RoundIndex == -1 {
+					// We send the last signal to kill the synchronizer
+					ready <- struct{}{}
+					break
+				}
+
+				// The new right side
+				Temp = XORBitsets(Feistel(KeyRounds1[RoundIndex], TR1), TL1)
+				// The left side is the old right side
+				TL1 = TR1
+				// The right side is the new computed side.
+				TR1 = Temp
+
+				// Signaling that the right side is done for this round.
+				ready <- struct{}{}
+			}
+		}(RightChan, RightRound)
+		//===========================================
+
+		Done := make(chan struct{})
+
+		// Synchronizer
+		go func(kill, leftReady, rightReady chan struct{}, leftRound, rightRound chan int) {
+
+			for i := 15; i >= -1; i-- {
+				// We send the rount through the respective channels
+				leftRound <- i
+				rightRound <- i
+
+				// Waiting for signals to proces
+				<-leftReady
+				<-rightReady
+			}
+
+			kill <- struct{}{}
+		}(Done, LeftChan, RightChan, LeftRound, RightRound)
+
+		// We wait for the synchronizer to die.
+		<-Done
 
 		// We switch the sides, as after 16 rounds they are inverted.
 		FinalLeft := ConcatBitsets(TR0, TL0)
