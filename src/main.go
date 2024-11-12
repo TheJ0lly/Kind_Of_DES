@@ -99,8 +99,8 @@ func main() {
 		return
 	}
 
-	if len(*key) != 8 {
-		logError("key must be exactly 8 characters\n")
+	if len(*key) != 16 {
+		logError("key must be exactly 16 characters\n")
 		return
 	}
 
@@ -109,8 +109,8 @@ func main() {
 		return
 	}
 
-	if *Decrypt && len(*text) != 16 {
-		logError("decryption: text must be exactly 16 HEX characters\n")
+	if *Decrypt && len(*text) != 32 {
+		logError("decryption: text must be exactly 32 HEX characters\n")
 		return
 	}
 
@@ -119,33 +119,61 @@ func main() {
 	if *Encrypt {
 		// Prepare the text
 		textBS = CreateBitsetFromString(*text, false)
+		// Adding timestamp (0 FOR NOW)
+		textBS.Salt()
 		textBS.Permute(&IP)
-		L0, R0 := textBS.Split()
+		// 64 bit halves - we need to split them once each.
+		TL, TR := textBS.Split()
+
+		// Left side halves
+		TL0, TR0 := TL.Split()
+
+		// Right side halves
+		TL1, TR1 := TR.Split()
 
 		// Prepare the key
 		keyBS = CreateBitsetFromString(*key, false)
 		keyBS.Permute(&PC1)
-		firstLeft, firstRight := keyBS.Split()
 
-		// Compute the key rounds for encryption
-		KeyRounds := PrecomputeRounds(firstLeft, firstRight)
+		// We get the 56 bits sides
+		KL, KR := keyBS.Split()
+
+		// The 28 bit halves of the left side
+		KL0, KR0 := KL.Split()
+		// Compute the key rounds for encryption of the left side
+		KeyRounds0 := PrecomputeRounds(KL0, KR0)
+
+		// The 28 bit halves of the right side
+		KL1, KR1 := KR.Split()
+		// Compute the key rounds for encryption of the right side
+		KeyRounds1 := PrecomputeRounds(KL1, KR1)
 
 		for RoundIndex := 0; RoundIndex < 16; RoundIndex++ {
-			// We concatenate the key
-			// tk := TransformKey(KEY_LEFT, KEY_RIGHT)
-
+			//============== LEFT SIDE =================
 			// The new right side
-			Temp = XORBitsets(Feistel(KeyRounds[RoundIndex], R0), L0)
-
+			Temp = XORBitsets(Feistel(KeyRounds0[RoundIndex], TR0), TL0)
 			// The left side is the old right side
-			L0 = R0
-
+			TL0 = TR0
 			// The right side is the new computed side.
-			R0 = Temp
+			TR0 = Temp
+			//===========================================
+
+			//============== RIGHT SIDE =================
+			// The new right side
+			Temp = XORBitsets(Feistel(KeyRounds1[RoundIndex], TR1), TL1)
+			// The left side is the old right side
+			TL1 = TR1
+			// The right side is the new computed side.
+			TR1 = Temp
+			//===========================================
+
 		}
 
 		// We switch the sides, as after 16 rounds they are inverted.
-		Final := ConcatBitsets(R0, L0)
+		FinalLeft := ConcatBitsets(TR0, TL0)
+		FinalRight := ConcatBitsets(TR1, TL1)
+
+		Final := ConcatBitsets(FinalLeft, FinalRight)
 		Final.Permute(IP.Inverse())
 
 		fmt.Printf("Output: %s\n", Final.ToHexString())
@@ -153,33 +181,60 @@ func main() {
 		// Prepare the text
 		textBS = CreateBitsetFromString(*text, true)
 		textBS.Permute(&IP)
-		L0, R0 := textBS.Split()
+		// 64 bit halves - we need to split them once each.
+		TL, TR := textBS.Split()
+
+		// Left side halves
+		TL0, TR0 := TL.Split()
+
+		// Right side halves
+		TL1, TR1 := TR.Split()
 
 		// Prepare the key
 		keyBS = CreateBitsetFromString(*key, false)
 		keyBS.Permute(&PC1)
-		firstLeft, firstRight := keyBS.Split()
 
-		// Compute the key rounds for encryption
-		KeyRounds := PrecomputeRounds(firstLeft, firstRight)
+		// We get the 56 bits sides
+		KL, KR := keyBS.Split()
+
+		// The 28 bit halves of the left side
+		KL0, KR0 := KL.Split()
+		// Compute the key rounds for encryption of the left side
+		KeyRounds0 := PrecomputeRounds(KL0, KR0)
+
+		// The 28 bit halves of the right side
+		KL1, KR1 := KR.Split()
+		// Compute the key rounds for encryption of the right side
+		KeyRounds1 := PrecomputeRounds(KL1, KR1)
 
 		for RoundIndex := 15; RoundIndex >= 0; RoundIndex-- {
-			// We concatenate the key
-			// tk := TransformKey(KEY_LEFT, KEY_RIGHT)
-
+			//============== LEFT SIDE =================
 			// The new right side
-			Temp = XORBitsets(Feistel(KeyRounds[RoundIndex], R0), L0)
-
+			Temp = XORBitsets(Feistel(KeyRounds0[RoundIndex], TR0), TL0)
 			// The left side is the old right side
-			L0 = R0
-
+			TL0 = TR0
 			// The right side is the new computed side.
-			R0 = Temp
+			TR0 = Temp
+			//===========================================
+
+			//============== RIGHT SIDE =================
+			// The new right side
+			Temp = XORBitsets(Feistel(KeyRounds1[RoundIndex], TR1), TL1)
+			// The left side is the old right side
+			TL1 = TR1
+			// The right side is the new computed side.
+			TR1 = Temp
+			//===========================================
+
 		}
 
 		// We switch the sides, as after 16 rounds they are inverted.
-		Final := ConcatBitsets(R0, L0)
+		FinalLeft := ConcatBitsets(TR0, TL0)
+		FinalRight := ConcatBitsets(TR1, TL1)
+
+		Final := ConcatBitsets(FinalLeft, FinalRight)
 		Final.Permute(IP.Inverse())
+		Final.RemoveSalt()
 
 		fmt.Printf("Output: %s\n", Final.ToString())
 	}
