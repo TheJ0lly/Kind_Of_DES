@@ -189,12 +189,12 @@ func main() {
 					break
 				}
 
-				// The new right side
-				Temp = XORBitsets(Feistel(KeyRounds1[RoundIndex], TR1), TL1)
-				// The left side is the old right side
-				TL1 = TR1
-				// The right side is the new computed side.
-				TR1 = Temp
+				// The new left side
+				Temp = XORBitsets(Feistel(KeyRounds1[RoundIndex], TL1), TR1)
+				// The right side is the old left side
+				TR1 = TL1
+				// The left side is the new computed side.
+				TL1 = Temp
 
 				// Signaling that the right side is done for this round.
 				ready <- struct{}{}
@@ -215,6 +215,9 @@ func main() {
 				// Waiting for signals to proces
 				<-leftReady
 				<-rightReady
+
+				// We switch the rounds after each process step to shuffle everything more.
+				KeyRounds0, KeyRounds1 = KeyRounds1, KeyRounds0
 			}
 
 			kill <- struct{}{}
@@ -296,12 +299,12 @@ func main() {
 					break
 				}
 
-				// The new right side
-				Temp = XORBitsets(Feistel(KeyRounds1[RoundIndex], TR1), TL1)
-				// The left side is the old right side
-				TL1 = TR1
-				// The right side is the new computed side.
-				TR1 = Temp
+				// The new left side
+				Temp = XORBitsets(Feistel(KeyRounds1[RoundIndex], TL1), TR1)
+				// The right side is the old left side
+				TR1 = TL1
+				// The left side is the new computed side.
+				TL1 = Temp
 
 				// Signaling that the right side is done for this round.
 				ready <- struct{}{}
@@ -315,13 +318,17 @@ func main() {
 		go func(kill, leftReady, rightReady chan struct{}, leftRound, rightRound chan int) {
 
 			for i := 15; i >= -1; i-- {
-				// We send the rount through the respective channels
+				// We switch the rounds before making any operation to match to reverse order of the rounds
+				KeyRounds0, KeyRounds1 = KeyRounds1, KeyRounds0
+
+				// We send the round through the respective channels
 				leftRound <- i
 				rightRound <- i
 
 				// Waiting for signals to proces
 				<-leftReady
 				<-rightReady
+
 			}
 
 			kill <- struct{}{}
