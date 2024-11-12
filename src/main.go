@@ -105,7 +105,12 @@ func main() {
 	}
 
 	if *Encrypt && len(*text) != 8 {
-		logError("text must be exactly 8 characters\n")
+		logError("encryption: text must be exactly 8 characters\n")
+		return
+	}
+
+	if *Decrypt && len(*text) != 16 {
+		logError("decryption: text must be exactly 16 HEX characters\n")
 		return
 	}
 
