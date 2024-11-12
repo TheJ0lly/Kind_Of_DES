@@ -5,17 +5,44 @@ import (
 	"fmt"
 )
 
-var RoundIndex = 0
-var TEXT_LEFT *Bitset
-var TEXT_RIGHT *Bitset
-var KEY_LEFT *Bitset
-var KEY_RIGHT *Bitset
 var RC *RoundComputer = &RoundComputer{Rounds: []int{1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1}}
 
 var Decrypt *bool
 var Encrypt *bool
 
-func TransformKey(left *Bitset, right *Bitset) *Bitset {
+func LeftRotateKey(key *Bitset, round int) *Bitset {
+	l, r := key.Split()
+	l.ShiftBy(RC.Rounds[round], true)
+	r.ShiftBy(RC.Rounds[round], true)
+
+	rotKey := ConcatBitsets(l, r)
+
+	return rotKey
+}
+
+func PrecomputeRounds(flk, frk *Bitset) []*Bitset {
+	roundKeys := make([]*Bitset, 16)
+	firstkey := ConcatBitsets(flk, frk)
+
+	l, r := firstkey.Split()
+
+	// We append the first key, which is the original key + leftshift[Round].
+	roundKeys[0] = LeftRotateKey(ConcatBitsets(l, r), RC.Rounds[0])
+
+	// We create all other rounds keys.
+	for r := 1; r < 16; r++ {
+		roundKeys[r] = LeftRotateKey(roundKeys[r-1], r)
+	}
+
+	// We apply the PC2 permutation on each key.
+	for r := 0; r < 16; r++ {
+		roundKeys[r].Permute(&PC2)
+	}
+
+	return roundKeys
+}
+
+func TransformKey(left *Bitset, right *Bitset, RoundIndex int) *Bitset {
 	left.ShiftBy(RC.Rounds[RoundIndex], true)
 	right.ShiftBy(RC.Rounds[RoundIndex], true)
 
@@ -39,7 +66,7 @@ func Feistel(key *Bitset, right *Bitset) *Bitset {
 		out |= v
 	}
 
-	outBS := CreateBitsetFromUInt32(out, false)
+	outBS := CreateBitsetFromUInt32(out)
 	outBS.Permute(&PPermutation)
 
 	return outBS
@@ -77,33 +104,33 @@ func main() {
 		return
 	}
 
-	if len(*text) != 8 {
+	if *Encrypt && len(*text) != 8 {
 		logError("text must be exactly 8 characters\n")
 		return
 	}
 
-	keyBS := CreateBitsetFromString(*key, false, false)
-
-	// Drop the parity bits - 56 bit key
-	keyBS.Permute(&PC1)
-
-	KEY_LEFT, KEY_RIGHT = keyBS.Split()
-
-	textBS := CreateBitsetFromString(*text, false, false)
-
-	textBS.Permute(&IP)
-
-	L0, R0 := textBS.Split()
-	var Temp *Bitset
+	var textBS, keyBS, Temp *Bitset
 
 	if *Encrypt {
-		RoundIndex = 0
-		for ; RoundIndex < 16; RoundIndex++ {
+		// Prepare the text
+		textBS = CreateBitsetFromString(*text, false)
+		textBS.Permute(&IP)
+		L0, R0 := textBS.Split()
+
+		// Prepare the key
+		keyBS = CreateBitsetFromString(*key, false)
+		keyBS.Permute(&PC1)
+		firstLeft, firstRight := keyBS.Split()
+
+		// Compute the key rounds for encryption
+		KeyRounds := PrecomputeRounds(firstLeft, firstRight)
+
+		for RoundIndex := 0; RoundIndex < 16; RoundIndex++ {
 			// We concatenate the key
-			tk := TransformKey(KEY_LEFT, KEY_RIGHT)
+			// tk := TransformKey(KEY_LEFT, KEY_RIGHT)
 
 			// The new right side
-			Temp = XORBitsets(Feistel(tk, R0), L0)
+			Temp = XORBitsets(Feistel(KeyRounds[RoundIndex], R0), L0)
 
 			// The left side is the old right side
 			L0 = R0
@@ -117,5 +144,38 @@ func main() {
 		Final.Permute(IP.Inverse())
 
 		fmt.Printf("Output: %s\n", Final.ToHexString())
+	} else {
+		// Prepare the text
+		textBS = CreateBitsetFromString(*text, true)
+		textBS.Permute(&IP)
+		L0, R0 := textBS.Split()
+
+		// Prepare the key
+		keyBS = CreateBitsetFromString(*key, false)
+		keyBS.Permute(&PC1)
+		firstLeft, firstRight := keyBS.Split()
+
+		// Compute the key rounds for encryption
+		KeyRounds := PrecomputeRounds(firstLeft, firstRight)
+
+		for RoundIndex := 15; RoundIndex >= 0; RoundIndex-- {
+			// We concatenate the key
+			// tk := TransformKey(KEY_LEFT, KEY_RIGHT)
+
+			// The new right side
+			Temp = XORBitsets(Feistel(KeyRounds[RoundIndex], R0), L0)
+
+			// The left side is the old right side
+			L0 = R0
+
+			// The right side is the new computed side.
+			R0 = Temp
+		}
+
+		// We switch the sides, as after 16 rounds they are inverted.
+		Final := ConcatBitsets(R0, L0)
+		Final.Permute(IP.Inverse())
+
+		fmt.Printf("Output: %s\n", Final.ToString())
 	}
 }

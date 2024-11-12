@@ -10,22 +10,15 @@ type Bitset struct {
 }
 
 // CreateBitsetFromString creates a Bitset from a string.
-func CreateBitsetFromString(str string, double, hex bool) *Bitset {
+func CreateBitsetFromString(str string, hex bool) *Bitset {
 	// We allocate space for the bits of the string + the timestamp bits(64 bits),
 	// and we set the size to the length of the string * 8, to get all bits per character.
-
-	capVal := 1
-
-	if double {
-		capVal = 2
-	}
-
 	var bs *Bitset
 
 	bsI := 0
 
 	if hex {
-		bs = &Bitset{Bits: make([]byte, len(str)*4, (len(str)*4)*capVal)}
+		bs = &Bitset{Bits: make([]byte, len(str)*4)}
 		for i := 0; i < len(str); i += 2 {
 			b := GetByteFromHex(str[i], str[i+1])
 			// We initialize with 128, because this is the value of the 8 bit alone.
@@ -40,7 +33,7 @@ func CreateBitsetFromString(str string, double, hex bool) *Bitset {
 			}
 		}
 	} else {
-		bs = &Bitset{Bits: make([]byte, len(str)*8, (len(str)*8)*capVal)}
+		bs = &Bitset{Bits: make([]byte, len(str)*8)}
 		for _, char := range str {
 			// We initialize with 128, because this is the value of the 8 bit alone.
 			bit := byte(128)
@@ -59,17 +52,11 @@ func CreateBitsetFromString(str string, double, hex bool) *Bitset {
 	return bs
 }
 
-func CreateBitsetFromUInt32(num uint32, double bool) *Bitset {
+func CreateBitsetFromUInt32(num uint32) *Bitset {
 	// We allocate space for the bits of the string + the timestamp bits(64 bits),
 	// and we set the size to the length of the string * 8, to get all bits per character.
 
-	capVal := 1
-
-	if double {
-		capVal = 2
-	}
-
-	bs := &Bitset{Bits: make([]byte, 32, 32*capVal)}
+	bs := &Bitset{Bits: make([]byte, 32)}
 	bsI := 0
 
 	for i := 31; i >= 0; i-- {
@@ -80,14 +67,8 @@ func CreateBitsetFromUInt32(num uint32, double bool) *Bitset {
 	return bs
 }
 
-func CreateBitsetFromInt64(num int64, double bool) *Bitset {
-	capVal := 1
-
-	if double {
-		capVal = 2
-	}
-
-	bs := &Bitset{Bits: make([]byte, 64, 64*capVal)}
+func CreateBitsetFromInt64(num int64) *Bitset {
+	bs := &Bitset{Bits: make([]byte, 64)}
 	bsI := 0
 
 	for i := 63; i >= 0; i-- {
@@ -228,7 +209,14 @@ func (bs *Bitset) ShiftBy(n int, direction bool) {
 }
 
 func ConcatBitsets(l *Bitset, r *Bitset) *Bitset {
-	ret := &Bitset{Bits: append(l.Bits, r.Bits...)}
+
+	left := make([]byte, l.Len())
+	right := make([]byte, l.Len())
+
+	copy(left, l.Bits)
+	copy(right, r.Bits)
+
+	ret := &Bitset{Bits: append(left, right...)}
 	logInfo("concatenated bitsets: new length %d\n", ret.Len())
 	return ret
 }
@@ -260,7 +248,7 @@ func (bs *Bitset) ApplySBox(which int) uint32 {
 	val := Get6BitVal(bs.Bits[index : index+6])
 
 	// We get the first bit, then we get the 6th bit
-	row := ((val & 1) << 1) | ((val & 32) >> 5)
+	row := ((val & 32) >> 4) | (val & 1)
 
 	// We nullify the first and last bit, and we get the middle 4
 	col := (val & 30) >> 1
