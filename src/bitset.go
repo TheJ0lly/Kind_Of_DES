@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strconv"
+	"time"
 )
 
 type Bitset struct {
@@ -139,16 +140,17 @@ func (bs *Bitset) Print() {
 func (bs *Bitset) Salt() {
 	logInfo("inserting timestamp 64 bits into bitset: length %d --- capacity %d\n", bs.Len(), cap(bs.Bits))
 
-	// uxT := time.Now().UnixMilli()
+	uxT := time.Now().UnixMilli()
 
-	// uxTBS := CreateBitsetFromInt64(uxT, false)
+	uxTBS := CreateBitsetFromInt64(uxT)
 
 	bitIndex := 0
 
-	nbs := make([]byte, cap(bs.Bits))
+	// We default it to 128, because salting, will get us to a 128 bit bitset
+	nbs := make([]byte, 128)
 
 	for i := 0; i < len(bs.Bits); i++ {
-		nbs[bitIndex] = 0
+		nbs[bitIndex] = uxTBS.Bits[i]
 		nbs[bitIndex+1] = bs.Bits[i]
 		bitIndex += 2
 	}
