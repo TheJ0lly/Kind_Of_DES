@@ -142,7 +142,9 @@ func (bs *Bitset) Salt() {
 
 	uxT := time.Now().UnixMilli()
 
-	uxTBS := CreateBitsetFromInt64(uxT)
+	uxTDup := (uxT << 32) | uxT
+
+	uxTBS := CreateBitsetFromInt64(uxTDup)
 
 	bitIndex := 0
 
