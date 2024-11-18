@@ -3,12 +3,50 @@ package main
 import (
 	"flag"
 	"fmt"
+	"slices"
 )
 
-var RC *RoundComputer = &RoundComputer{Rounds: []int{1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1}}
+var RC *RoundComputer = &RoundComputer{Rounds: make([]int, 16)}
 
 var Decrypt *bool
 var Encrypt *bool
+
+func GenerateRounds(key *Bitset) {
+	for i := 0; i < key.Len()-7; i++ {
+		part := key.Bits[i : i+7]
+		val := byte(0)
+
+		for j := 0; j < 7; j++ {
+			val <<= 1
+			val |= part[j]
+		}
+
+		RC.Rounds[val%16]++
+	}
+
+	maxRounds := 0
+
+	roundc := make([]int, 16)
+	copy(roundc, RC.Rounds)
+
+	// We set the rounds of 1 bit shift
+	for maxRounds < 4 {
+		index := slices.Index(roundc, slices.Max(roundc))
+
+		RC.Rounds[index] = 1
+
+		roundc = slices.Delete(roundc, index, index+1)
+
+		maxRounds++
+	}
+
+	// Everything that's not a 1, we set to 2.
+	for i := 0; i < len(RC.Rounds); i++ {
+		if RC.Rounds[i] != 1 {
+			RC.Rounds[i] = 2
+		}
+	}
+}
 
 func LeftRotateKey(key *Bitset, round int) *Bitset {
 	l, r := key.Split()
@@ -141,6 +179,9 @@ func main() {
 		keyBS = CreateBitsetFromString(*key, false)
 		keyBS.Permute(&PC1)
 
+		// We generate the rounds based on the key
+		GenerateRounds(keyBS)
+
 		// We get the 56 bits sides
 		KL, KR := keyBS.Split()
 
@@ -250,6 +291,9 @@ func main() {
 		// Prepare the key
 		keyBS = CreateBitsetFromString(*key, false)
 		keyBS.Permute(&PC1)
+
+		// We generate the rounds based on the key
+		GenerateRounds(keyBS)
 
 		// We get the 56 bits sides
 		KL, KR := keyBS.Split()
