@@ -24,26 +24,29 @@ func GenerateRounds(key *Bitset) {
 		RC[val%16]++
 	}
 
-	maxRounds := 0
+	maxIndexes := make(map[int]int, 16)
 
-	roundc := make([]int, 16)
-	copy(roundc, RC)
+	// We set the map to vector values and indexes.
+	for i, v := range RC {
+		maxIndexes[v] = i
+	}
 
-	// We set the rounds of 1 bit shift
-	for maxRounds < 4 {
-		index := slices.Index(roundc, slices.Max(roundc))
+	keys := make([]int, 0, len(maxIndexes))
+	for k := range maxIndexes {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
 
-		RC[index] = 1
-
-		roundc = slices.Delete(roundc, index, index+1)
-
-		maxRounds++
+	for i := len(keys) - 1; i >= len(keys)-4; i-- {
+		RC[maxIndexes[keys[i]]] = -1
 	}
 
 	// Everything that's not a 1, we set to 2.
 	for i := 0; i < len(RC); i++ {
-		if RC[i] != 1 {
+		if RC[i] != -1 {
 			RC[i] = 2
+		} else if RC[i] == -1 {
+			RC[i] = 1
 		}
 	}
 }
