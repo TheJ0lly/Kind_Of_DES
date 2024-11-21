@@ -6,7 +6,7 @@ import (
 	"slices"
 )
 
-var RC *RoundComputer = &RoundComputer{Rounds: make([]int, 16)}
+var RC []int = make([]int, 16)
 
 var Decrypt *bool
 var Encrypt *bool
@@ -21,19 +21,19 @@ func GenerateRounds(key *Bitset) {
 			val |= part[j]
 		}
 
-		RC.Rounds[val%16]++
+		RC[val%16]++
 	}
 
 	maxRounds := 0
 
 	roundc := make([]int, 16)
-	copy(roundc, RC.Rounds)
+	copy(roundc, RC)
 
 	// We set the rounds of 1 bit shift
 	for maxRounds < 4 {
 		index := slices.Index(roundc, slices.Max(roundc))
 
-		RC.Rounds[index] = 1
+		RC[index] = 1
 
 		roundc = slices.Delete(roundc, index, index+1)
 
@@ -41,17 +41,17 @@ func GenerateRounds(key *Bitset) {
 	}
 
 	// Everything that's not a 1, we set to 2.
-	for i := 0; i < len(RC.Rounds); i++ {
-		if RC.Rounds[i] != 1 {
-			RC.Rounds[i] = 2
+	for i := 0; i < len(RC); i++ {
+		if RC[i] != 1 {
+			RC[i] = 2
 		}
 	}
 }
 
 func LeftRotateKey(key *Bitset, round int) *Bitset {
 	l, r := key.Split()
-	l.ShiftBy(RC.Rounds[round], true)
-	r.ShiftBy(RC.Rounds[round], true)
+	l.ShiftBy(RC[round], true)
+	r.ShiftBy(RC[round], true)
 
 	rotKey := ConcatBitsets(l, r)
 
@@ -65,7 +65,7 @@ func PrecomputeRounds(flk, frk *Bitset) []*Bitset {
 	l, r := firstkey.Split()
 
 	// We append the first key, which is the original key + leftshift[Round].
-	roundKeys[0] = LeftRotateKey(ConcatBitsets(l, r), RC.Rounds[0])
+	roundKeys[0] = LeftRotateKey(ConcatBitsets(l, r), RC[0])
 
 	// We create all other rounds keys.
 	for r := 1; r < 16; r++ {
@@ -78,16 +78,6 @@ func PrecomputeRounds(flk, frk *Bitset) []*Bitset {
 	}
 
 	return roundKeys
-}
-
-func TransformKey(left *Bitset, right *Bitset, RoundIndex int) *Bitset {
-	left.ShiftBy(RC.Rounds[RoundIndex], true)
-	right.ShiftBy(RC.Rounds[RoundIndex], true)
-
-	ck := ConcatBitsets(left, right)
-	ck.Permute(&PC2)
-
-	return ck
 }
 
 func Feistel(key *Bitset, right *Bitset) *Bitset {
