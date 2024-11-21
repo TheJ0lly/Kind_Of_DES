@@ -1,4 +1,4 @@
-package main
+package sdes
 
 import (
 	"fmt"
@@ -102,7 +102,7 @@ func (bs *Bitset) Len() int {
 //
 // Should only be used on the key one time before the process.
 func (bs *Bitset) RemoveParityBits() {
-	logInfo("removing parity bits: current length %d -> expected length %d\n", bs.Len(), bs.Len()-bs.LenBytes())
+	LogInfo("removing parity bits: current length %d -> expected length %d\n", bs.Len(), bs.Len()-bs.LenBytes())
 	// We do minus 9 because we offset 1 from the length of the bits,
 	// and 8 because we need the last parity bit
 	i := bs.Len() - 8
@@ -112,13 +112,13 @@ func (bs *Bitset) RemoveParityBits() {
 		i -= 8
 	}
 
-	logInfo("parity bits removed: current length %d\n", bs.Len())
+	LogInfo("parity bits removed: current length %d\n", bs.Len())
 }
 
 // Split creates 2 equal halves of a bitset.
 func (bs *Bitset) Split() (*Bitset, *Bitset) {
 	middle := bs.Len() / 2
-	logInfo("spliting bitset into 2 halves of %d bits each\n", middle)
+	LogInfo("spliting bitset into 2 halves of %d bits each\n", middle)
 
 	left := &Bitset{Bits: make([]byte, middle)}
 	right := &Bitset{Bits: make([]byte, middle)}
@@ -138,7 +138,7 @@ func (bs *Bitset) Print() {
 
 // Salt adds the timestamp bits into the text bits to give 128 bits.
 func (bs *Bitset) Salt() {
-	logInfo("inserting timestamp 64 bits into bitset: length %d --- capacity %d\n", bs.Len(), cap(bs.Bits))
+	LogInfo("inserting timestamp 64 bits into bitset: length %d --- capacity %d\n", bs.Len(), cap(bs.Bits))
 
 	uxT := time.Now().UnixMilli()
 
@@ -158,11 +158,11 @@ func (bs *Bitset) Salt() {
 	}
 
 	bs.Bits = nbs
-	logInfo("inserted timestamp: current length %d\n", bs.Len())
+	LogInfo("inserted timestamp: current length %d\n", bs.Len())
 }
 
 func (bs *Bitset) RemoveSalt() {
-	logInfo("removing salt\n")
+	LogInfo("removing salt\n")
 
 	nbs := make([]byte, 64)
 	bitIndex := 0
@@ -184,7 +184,7 @@ func (bs *Bitset) Permute(p *Permutation) {
 	}
 
 	bs.Bits = nbs
-	logInfo("new length after permute %d\n", bs.Len())
+	LogInfo("new length after permute %d\n", bs.Len())
 }
 
 // ShiftBy shifts the Bitset by `n` bits.
@@ -221,7 +221,7 @@ func ConcatBitsets(l *Bitset, r *Bitset) *Bitset {
 	copy(right, r.Bits)
 
 	ret := &Bitset{Bits: append(left, right...)}
-	logInfo("concatenated bitsets: new length %d\n", ret.Len())
+	LogInfo("concatenated bitsets: new length %d\n", ret.Len())
 	return ret
 }
 
