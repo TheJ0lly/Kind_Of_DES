@@ -1,4 +1,4 @@
-package main
+package sdes
 
 import "fmt"
 
@@ -8,11 +8,11 @@ func log(ty, format string, args ...any) {
 	fmt.Printf(ty+format, args...)
 }
 
-func logError(format string, args ...any) {
+func LogError(format string, args ...any) {
 	log("error: ", format, args...)
 }
 
-func logInfo(format string, args ...any) {
+func LogInfo(format string, args ...any) {
 	if CanLog {
 		log("info: ", format, args...)
 	}
